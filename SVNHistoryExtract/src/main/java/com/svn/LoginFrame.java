@@ -1,10 +1,12 @@
-package com.svn;
+package artifact;
 
 import java.awt.Color;
 import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.util.List;
 
+import javax.swing.DefaultListModel;
 import javax.swing.JButton;
 import javax.swing.JComboBox;
 import javax.swing.JFrame;
@@ -12,9 +14,19 @@ import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPasswordField;
 import javax.swing.JTextField;
+import java.awt.Font;
+import javax.swing.SwingConstants;
+import javax.swing.JList;
+import javax.swing.event.ListSelectionListener;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.UIManager;
+import javax.swing.JScrollPane;
+import javax.swing.JScrollBar;
+import javax.swing.JTextArea;
+import javax.swing.JSeparator;
 
 public class LoginFrame
-    extends JFrame
+    extends JFrame implements ActionListener
 {
 
     private JFrame frame;
@@ -22,6 +34,11 @@ public class LoginFrame
     private JTextField login;
 
     private JTextField release;
+    
+    private JList svnHistory;
+    private JList dataChosen;
+    JTextArea emailText = new JTextArea();
+    SvnManager svnMng;
 
     /**
      * Return frame.
@@ -150,6 +167,7 @@ public class LoginFrame
     {
         this.to = to;
     }
+    
 
     private JTextField name;
 
@@ -195,7 +213,7 @@ public class LoginFrame
     private void initialize()
     {
         frame = new JFrame();
-        frame.setBounds(100, 100, 430, 489);
+        frame.setBounds(100, 100, 1530, 489);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         frame.getContentPane().setLayout(null);
 
@@ -210,7 +228,7 @@ public class LoginFrame
         frame.getContentPane().add(loginLabel);
 
         JLabel releaseLabel = new JLabel("Release version");
-        releaseLabel.setBounds(35, 210, 80, 14);
+        releaseLabel.setBounds(35, 210, 111, 14);
         frame.getContentPane().add(releaseLabel);
 
         release = new JTextField();
@@ -221,11 +239,11 @@ public class LoginFrame
 
         JButton btnClear = new JButton("Clear");
 
-        btnClear.setBounds(261, 322, 89, 23);
+        btnClear.setBounds(94, 332, 89, 23);
         frame.getContentPane().add(btnClear);
 
         JLabel versionEpeLabel = new JLabel("Version EPE");
-        versionEpeLabel.setBounds(35, 160, 67, 14);
+        versionEpeLabel.setBounds(35, 160, 111, 14);
         frame.getContentPane().add(versionEpeLabel);
 
         final JComboBox<String> versionEpeComboBox = new JComboBox<String>();
@@ -244,11 +262,11 @@ public class LoginFrame
         versionEpeComboBox.setBounds(158, 160, 155, 20);
         frame.getContentPane().add(versionEpeComboBox);
 
-        JButton btnSubmit = new JButton("submit");
+        JButton btnSubmit = new JButton("Submit"); 	
 
         btnSubmit.setBackground(Color.WHITE);
         btnSubmit.setForeground(Color.DARK_GRAY);
-        btnSubmit.setBounds(106, 322, 89, 23);
+        btnSubmit.setBounds(224, 332, 89, 23);
         frame.getContentPane().add(btnSubmit);
 
         JLabel passwordLabel = new JLabel("Password");
@@ -256,7 +274,7 @@ public class LoginFrame
         frame.getContentPane().add(passwordLabel);
 
         JLabel nameLabel = new JLabel("Sender's name");
-        nameLabel.setBounds(35, 117, 83, 14);
+        nameLabel.setBounds(35, 117, 111, 14);
         frame.getContentPane().add(nameLabel);
 
         name = new JTextField();
@@ -288,7 +306,60 @@ public class LoginFrame
         to.setColumns(10);
         to.setBounds(158, 274, 155, 20);
         frame.getContentPane().add(to);
+        
+        JLabel lblSvnHistory = new JLabel("SVN history");
+        lblSvnHistory.setFont(new Font("MS Reference Sans Serif", Font.ITALIC, 16));
+        lblSvnHistory.setBounds(522, 13, 167, 20);
+        frame.getContentPane().add(lblSvnHistory);
+        
+        final DefaultListModel sv = new DefaultListModel();
+        final DefaultListModel d = new DefaultListModel();
+        dataChosen = new JList();
+        dataChosen.setModel(d);
+        
+        JButton generate = new JButton(">>");
+        generate.setFont(new Font("Tahoma", Font.PLAIN, 25));
+        generate.addActionListener(new ActionListener() {
+        	public void actionPerformed(ActionEvent e) {
+        		// recup de données selectionnées 
+        		//List<String> str = svnHistory.getSelectedValuesList();
+        		generateEmail();
+        		/*for(String s : str)
+        		{
+        			System.out.println(str.toString());
+        			emailText.setText(str.toString());
+        		}*/
+        		
+        	}
+        });
+        generate.setForeground(Color.WHITE);
+        generate.setBackground(Color.RED);
+        generate.setBounds(782, 134, 89, 40);
+        frame.getContentPane().add(generate);
+        
+        JScrollPane scrollPane = new JScrollPane();
+        scrollPane.setBounds(373, 34, 396, 395);
+        frame.getContentPane().add(scrollPane);
+        svnHistory = new JList();
+        scrollPane.setViewportView(svnHistory);
+        svnHistory.setModel(sv);
+        
+        JScrollPane scrollPaneForEmailText = new JScrollPane();
+        scrollPaneForEmailText.setBounds(883, 34, 593, 395);
+        frame.getContentPane().add(scrollPaneForEmailText);
+        
+        
+        scrollPaneForEmailText.setViewportView(emailText);
+        
+        JLabel lblDeliveryEmail = new JLabel("Delivery email");
+        lblDeliveryEmail.setFont(new Font("MS Reference Sans Serif", Font.ITALIC, 16));
+        lblDeliveryEmail.setBounds(1138, 13, 167, 20);
+        frame.getContentPane().add(lblDeliveryEmail);
+        
 
+        
+        
+      
         btnSubmit.addActionListener(new ActionListener()
         {
             public void actionPerformed(ActionEvent arg0)
@@ -296,15 +367,100 @@ public class LoginFrame
                 if (login.getText().isEmpty() || (password.getText().isEmpty()) || (release.getText().isEmpty())
                     || (from.getText().isEmpty()) || (versionEpeComboBox.getSelectedItem().equals("Select")))
                 {
-                    JOptionPane.showMessageDialog(null, "Data Missing");
-                    SVNHistoryExtract.next = false;
+                    JOptionPane.showMessageDialog(null, "Data Missing", "Warning", JOptionPane.WARNING_MESSAGE);
                 }
                 else
                 {
-                    JOptionPane.showMessageDialog(null, "Data Submitted");
-                    SVNHistoryExtract.next = true;
-
-
+                    // appel SVN et recup de données : Ajout des données à la JList
+                	svnMng = new SvnManager();
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+                    sv.addElement("Commit 2 ");
+                    sv.addElement("Commit 3 ");
+                    sv.addElement("Commit 1 ");
+  
                 }
             }
         });
@@ -326,4 +482,16 @@ public class LoginFrame
         });
 
     }
+    public void generateEmail()
+    {
+    	SvnManager svnMng = new SvnManager();
+    	emailText.append("Goodbye Cruel World\n");
+		emailText.append(svnMng.getResult());
+    }
+   
+
+	public void actionPerformed(ActionEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
 }
